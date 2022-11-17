@@ -8,13 +8,15 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torchvision
 from torch.nn.parameter import Parameter
+import pdb
 
+# xxxx8888
 class my_model(nn.Module):
     def __init__(self,
-                 en_feature_num,
-                 en_inter_num,
-                 de_feature_num,
-                 de_inter_num,
+                 en_feature_num=48,
+                 en_inter_num=32,
+                 de_feature_num=64,
+                 de_inter_num=32,
                  sam_number=1,
                  ):
         super(my_model, self).__init__()

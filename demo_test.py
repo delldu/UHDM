@@ -1,19 +1,19 @@
 import datetime
 import logging
-import lpips
+# import lpips
 import numpy as np
 import torch
 import argparse
-import cv2
+# import cv2
 import torch.utils.data as data
 import torchvision
 import random
-import torch.nn.functional as F
+# import torch.nn.functional as F
 import torch.nn as nn
-from tensorboardX import SummaryWriter
+# from tensorboardX import SummaryWriter
 import torch.optim as optim
 import os
-from model.model import model_fn_decorator
+# from model.model import model_fn_decorator
 from model.nets import my_model
 from dataset.load_data import *
 from tqdm import tqdm
@@ -24,7 +24,8 @@ import logging
 from PIL import Image
 from PIL import ImageFile
 import os
-
+import pdb
+import todos
 
 def demo_test(args, TestImgLoader, model, save_path, device):
     tbar = tqdm(TestImgLoader)
@@ -38,7 +39,7 @@ def demo_test(args, TestImgLoader, model, save_path, device):
 
 def init():
     # Make dirs
-    args.TEST_RESULT_DIR = os.path.join(args.SAVE_PREFIX, args.EXP_NAME, 'test_result')
+    args.TEST_RESULT_DIR = args.SAVE_PREFIX
     mkdir(args.TEST_RESULT_DIR)
     args.NETS_DIR = os.path.join(args.SAVE_PREFIX, args.EXP_NAME, 'net_checkpoints')
     os.environ["CUDA_VISIBLE_DEVICES"] = "%d" % args.GPU_ID
@@ -49,12 +50,13 @@ def init():
     np.random.seed(args.SEED)
     torch.manual_seed(args.SEED)
     torch.cuda.manual_seed_all(args.SEED)
-    if args.SEED == 0:
-        torch.backends.cudnn.deterministic = True
-        torch.backends.cudnn.benchmark = False
-    else:
-        torch.backends.cudnn.deterministic = False
-        torch.backends.cudnn.benchmark = True
+
+    # if args.SEED == 0: # False, args.SEED = 123
+    #     torch.backends.cudnn.deterministic = True
+    #     torch.backends.cudnn.benchmark = False
+    # else:
+    #     torch.backends.cudnn.deterministic = False
+    #     torch.backends.cudnn.benchmark = True
 
     return device
 
@@ -62,17 +64,19 @@ def init():
 def load_checkpoint(model):
     if args.LOAD_PATH:
         load_path = args.LOAD_PATH
-        save_path = args.TEST_RESULT_DIR + '/customer'
+        save_path = args.TEST_RESULT_DIR + ''
         log_path = args.TEST_RESULT_DIR + '/customer_result.log'
     else:
         print('Please specify a checkpoint path in the config file!!!')
         raise NotImplementedError
     mkdir(save_path)
     if load_path.endswith('.pth'):
-        model_state_dict = torch.load(load_path)
+        model_state_dict = torch.load(load_path, map_location=torch.device('cpu'))
     else:
         model_state_dict = torch.load(load_path)['state_dict']
     model.load_state_dict(model_state_dict)
+
+    torch.save(model.state_dict, "/tmp/image_demoire.pth")
 
     return load_path, save_path, log_path
 
@@ -122,7 +126,10 @@ def test_model_fn(args, data, model, save_path, device):
     # save images
     if args.SAVE_IMG:
         out_save = out_1.detach().cpu()
-        torchvision.utils.save_image(out_save, save_path + '/' + 'test_%s' % number[0] + '.%s' % args.SAVE_IMG)
+        # torchvision.utils.save_image(out_save, save_path + '/' + 'test_%s' % number[0] + '.%s' % args.SAVE_IMG)
+
+        output_file = save_path + '/' + 'test_%s' % number[0] + '.%s' % args.SAVE_IMG
+        todos.data.save_tensor([in_img, out_save], output_file)
 
 def create_demo_dataset(
     args,
@@ -169,7 +176,7 @@ class demo_data_loader(data.Dataset):
         return data
 
     def __len__(self):
-        return len(self.image_list)
+        return len(self.image_list[0:10]) # xxxx8888
 
 def main():
     device = init()
