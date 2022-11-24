@@ -18,10 +18,12 @@ import torch
 import todos
 import image_demoire
 
+# The following operators are not implemented: ['aten::pixel_unshuffle']
+
+SO_B, SO_C, SO_H, SO_W = 1, 3, 512, 512
 
 def compile():
     model, device = image_demoire.get_tvm_model()
-    SO_B, SO_C, SO_H, SO_W = 1, 3, model.MAX_H, model.MAX_W
 
     todos.data.mkdir("output")
     if not os.path.exists("output/image_demoire.so"):
@@ -32,12 +34,12 @@ def compile():
 
 def predict(input_files, output_dir):
     model, device = image_demoire.get_tvm_model()
-    SO_B, SO_C, SO_H, SO_W = 1, 3, model.MAX_H, model.MAX_W
 
     # Create directory to store result
     todos.data.mkdir(output_dir)
 
     # load model
+    device = todos.model.get_device()
     tvm_model = todos.tvmod.load("output/image_demoire.so", str(device))
 
     # load files

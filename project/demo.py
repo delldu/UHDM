@@ -11,4 +11,4 @@
 
 import image_demoire
 
-image_demoire.image_demoire_predict("images/00001*.png", "output")
+image_demoire.image_demoire_predict("images/*.png", "output")
