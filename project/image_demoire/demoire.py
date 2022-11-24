@@ -289,7 +289,7 @@ class ESDNet(nn.Module):
         out_1, out_2, out_3 = self.decoder(y_1, y_2, y_3)
 
         # return out_1, out_2, out_3
-        return out_1
+        return out_1.clamp(0.0, 1.0)
 
     def _initialize_weights(self):
         for m in self.modules():
