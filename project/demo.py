@@ -12,3 +12,5 @@
 import image_demoire
 
 image_demoire.image_demoire_predict("images/*.png", "output")
+# doc7k
+#image_demoire.image_demoire_predict("images/*.jpg", "output")

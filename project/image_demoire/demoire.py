@@ -20,7 +20,7 @@ import pdb
 
 class Decoder(nn.Module):
     def __init__(self, en_num, feature_num, inter_num, sam_number):
-        super(Decoder, self).__init__()
+        super().__init__()
         self.preconv_3 = conv_relu(4 * en_num, feature_num, 3, padding=1)
         self.decoder_3 = Decoder_Level(feature_num, inter_num, sam_number)
 
@@ -48,7 +48,7 @@ class Decoder(nn.Module):
 
 class Encoder(nn.Module):
     def __init__(self, feature_num, inter_num, sam_number):
-        super(Encoder, self).__init__()
+        super().__init__()
         self.conv_first = nn.Sequential(
             nn.Conv2d(12, feature_num, kernel_size=5, stride=1, padding=2, bias=True), nn.ReLU(inplace=True)
         )
@@ -69,7 +69,7 @@ class Encoder(nn.Module):
 
 class Encoder_Level(nn.Module):
     def __init__(self, feature_num, inter_num, level, sam_number):
-        super(Encoder_Level, self).__init__()
+        super().__init__()
         self.rdb = RDB(in_channel=feature_num, d_list=(1, 2, 1), inter_num=inter_num)
         self.sam_blocks = nn.ModuleList()
         for _ in range(sam_number):
@@ -99,7 +99,7 @@ class Encoder_Level(nn.Module):
 
 class Decoder_Level(nn.Module):
     def __init__(self, feature_num, inter_num, sam_number):
-        super(Decoder_Level, self).__init__()
+        super().__init__()
         self.rdb = RDB(feature_num, (1, 2, 1), inter_num)
         self.sam_blocks = nn.ModuleList()
         for _ in range(sam_number):
@@ -120,7 +120,7 @@ class Decoder_Level(nn.Module):
 
 class DB(nn.Module):
     def __init__(self, in_channel, d_list, inter_num):
-        super(DB, self).__init__()
+        super().__init__()
         self.d_list = d_list
         self.conv_layers = nn.ModuleList()
         c = in_channel
@@ -143,7 +143,7 @@ class DB(nn.Module):
 
 class SAM(nn.Module):
     def __init__(self, in_channel, d_list, inter_num):
-        super(SAM, self).__init__()
+        super().__init__()
         self.basic_block = DB(in_channel=in_channel, d_list=d_list, inter_num=inter_num)
         self.basic_block_2 = DB(in_channel=in_channel, d_list=d_list, inter_num=inter_num)
         self.basic_block_4 = DB(in_channel=in_channel, d_list=d_list, inter_num=inter_num)
@@ -169,7 +169,7 @@ class SAM(nn.Module):
 
 class CSAF(nn.Module):
     def __init__(self, in_chnls, ratio=4):
-        super(CSAF, self).__init__()
+        super().__init__()
         self.squeeze = nn.AdaptiveAvgPool2d((1, 1))
         self.compress1 = nn.Conv2d(in_chnls, in_chnls // ratio, 1, 1, 0)
         self.compress2 = nn.Conv2d(in_chnls // ratio, in_chnls // ratio, 1, 1, 0)
@@ -194,7 +194,7 @@ class CSAF(nn.Module):
 
 class RDB(nn.Module):
     def __init__(self, in_channel, d_list, inter_num):
-        super(RDB, self).__init__()
+        super().__init__()
         self.d_list = d_list
         self.conv_layers = nn.ModuleList()
         c = in_channel
@@ -218,7 +218,7 @@ class RDB(nn.Module):
 
 class conv(nn.Module):
     def __init__(self, in_channel, out_channel, kernel_size, dilation_rate=1, padding=0, stride=1):
-        super(conv, self).__init__()
+        super().__init__()
         self.conv = nn.Conv2d(
             in_channels=in_channel,
             out_channels=out_channel,
@@ -236,7 +236,7 @@ class conv(nn.Module):
 
 class conv_relu(nn.Module):
     def __init__(self, in_channel, out_channel, kernel_size, dilation_rate=1, padding=0, stride=1):
-        super(conv_relu, self).__init__()
+        super().__init__()
         self.conv = nn.Sequential(
             nn.Conv2d(
                 in_channels=in_channel,
@@ -258,19 +258,18 @@ class conv_relu(nn.Module):
 class ESDNet(nn.Module):
     """Default is large model for sam_number=2"""
 
-    def __init__(
-        self,
+    def __init__(self,
         en_feature_num=48,
         en_inter_num=32,
         de_feature_num=64,
         de_inter_num=32,
         sam_number=2,
     ):
-        super(ESDNet, self).__init__()
-        self.MAX_H = 1024
-        self.MAX_W = 2024
+        super().__init__()
+        self.MAX_H = 2048
+        self.MAX_W = 2048
         self.MAX_TIMES = 32
-        # GPU: 4G, 400ms
+        # GPU half mode: 4G, 450ms
 
         self.encoder = Encoder(feature_num=en_feature_num, inter_num=en_inter_num, sam_number=sam_number)
         self.decoder = Decoder(
@@ -278,6 +277,7 @@ class ESDNet(nn.Module):
         )
 
         self.load_weights()
+        self.half().eval()
 
     def load_weights(self, model_path="models/image_demoire.pth"):
         cdir = os.path.dirname(__file__)
@@ -285,11 +285,14 @@ class ESDNet(nn.Module):
         self.load_state_dict(torch.load(checkpoint))
 
     def forward(self, x):
+        if x.is_cuda:
+            x = x.half()
+
         y_1, y_2, y_3 = self.encoder(x)
         out_1, out_2, out_3 = self.decoder(y_1, y_2, y_3)
 
         # return out_1, out_2, out_3
-        return out_1.clamp(0.0, 1.0)
+        return out_1.clamp(0.0, 1.0).float()
 
     def _initialize_weights(self):
         for m in self.modules():
